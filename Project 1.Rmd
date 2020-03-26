@@ -1,0 +1,77 @@
+---
+title: "Project 1"
+author: "Logan"
+date: "3/25/2020"
+output: html_document
+---
+
+```{r}
+library(readxl)
+housing <- read_excel("Housing.xlsx")
+View(housing)
+head(housing)
+```
+
+
+#Data Summary
+```{r}
+sapply(housing, class)
+str(housing)
+housing.numeric <- housing[, sapply(housing, is.numeric)]
+apply(housing.numeric, 2, mean)
+apply(housing.numeric, 2, sd)
+apply(housing.numeric, 2, range)
+```
+After looking at the data in various ways above, it seems that there are no missing values and the data does not look to have any typos or strange values. 
+The values that require extra explanation are price, size and lot:
+
+*The price of the house seems to be recorded as a dollar amount in the thousands, so a house with a price value of 388 really means $388,000. 
+
+*The size of the house seems to be recorded as square feet in the thousands, so a house with a size value of 2.18 means 2,180 square feet. 
+
+*The lot variable seems to be just the number of acres the lot the house is built on has. 
+
+```{r}
+attach(housing)
+```
+
+#Exploratory Data Analysis
+```{r}
+summary(lm(price~size))
+```
+```{r}
+summary(lm(price~lot))
+```
+```{r}
+summary(lm(price~bath))
+```
+```{r}
+summary(lm(price~bedrooms))
+```
+```{r}
+summary(lm(price~agestandardized))
+```
+```{r}
+summary(lm(price~garagesize))
+```
+From the summaries of the various linear regression models, it can be concluded that lot, bedrooms, and garagesize have a significant effect on the price of a house due to their low p values.
+
+#Initial Modeling 
+```{r}
+summary(lm(price~lot+bedrooms+garagesize))
+```
+$$$$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
