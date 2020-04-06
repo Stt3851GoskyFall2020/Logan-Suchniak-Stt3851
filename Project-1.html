@@ -464,7 +464,7 @@ housing2 &lt;- housing1[c(-4), ]</code></pre>
 <p>The first part of the data modification was to remove points that were determined to be outliars.</p>
 <pre class="r"><code>pow&lt;-1/2
 pricet&lt;-(housing2$price)^pow</code></pre>
-<p>This input was included in order to fix problems with non linearity in the data.</p>
+<p>This input was included in order to fix problems with non linearity.</p>
 <pre class="r"><code>lg2&lt;-lm(pricet~sqrt(lot)+bedrooms+garagesize+elem,data = housing2)
 summary(lg2)</code></pre>
 <pre><code>## 

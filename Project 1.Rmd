@@ -108,7 +108,7 @@ The first part of the data modification was to remove points that were determine
 pow<-1/2
 pricet<-(housing2$price)^pow
 ```
-This input was included in order to fix problems with non linearity in the data.
+This input was included in order to fix problems with non linearity.
 
 ```{r}
 lg2<-lm(pricet~sqrt(lot)+bedrooms+garagesize+elem,data = housing2)
@@ -157,6 +157,7 @@ The 95% prediction interval for the same house predicts a cost between 320,000 d
 The output price values were squared to compensate for the modelling alterations to the price variable. 
 
 Our model seems relatively reasonable as the house we chose to predict the cost of had a four acre lot, four bedrooms, and a five car garage. Additionally, the house is in the Edison school zone which seems to raise the value of the house. 
+
 
 
 
