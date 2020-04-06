@@ -1,6 +1,6 @@
 ---
 title: "Project 1"
-author: "Logan"
+author: "Logan Suchniak and Garrett Halford"
 date: "3/25/2020"
 output: html_document
 ---
@@ -8,11 +8,11 @@ output: html_document
 ```{r}
 library(readxl)
 housing <- read_excel("Housing.xlsx")
-View(housing)
+#View(housing)
 head(housing)
 ```
 
-
+#1.
 #Data Summary
 ```{r}
 sapply(housing, class)
@@ -25,46 +25,138 @@ apply(housing.numeric, 2, range)
 After looking at the data in various ways above, it seems that there are no missing values and the data does not look to have any typos or strange values. 
 The values that require extra explanation are price, size and lot:
 
-*The price of the house seems to be recorded as a dollar amount in the thousands, so a house with a price value of 388 really means $388,000. 
+-The price of the house seems to be recorded as a dollar amount in the thousands, so a house with a price value of 388 really means $388,000. 
 
-*The size of the house seems to be recorded as square feet in the thousands, so a house with a size value of 2.18 means 2,180 square feet. 
+-The size of the house is most likely recorded in square feet multiplied by 1000, so a house with a 2.000 size really means 2,000 square feet. 
 
-*The lot variable seems to be just the number of acres the lot the house is built on has. 
+-The lot variable is probably recorded in acres. 
 
 ```{r}
 attach(housing)
 ```
 
+#2.
 #Exploratory Data Analysis
 ```{r}
 summary(lm(price~size))
 ```
+This shows that there is not a significant relationship between size and the price of a house due to the large p value of 0.081.
+
 ```{r}
-summary(lm(price~lot))
+summary(lm(housing$price~housing$lot))
 ```
+This shows that there is a significant relationship between the size of the lot surrounding a house with the price of the house. This can be seen by the small p value of 0.0335.
+
 ```{r}
 summary(lm(price~bath))
 ```
+Due to the large p value of 0.131, it can be determined that there is not a significant relationship between the number of bathrooms and the price of the house.
+
 ```{r}
 summary(lm(price~bedrooms))
 ```
+By looking at the small p value of 0.0122, it can be seen that the relationship between the number of bedrooms and the price of the house is significant.
+
 ```{r}
 summary(lm(price~agestandardized))
 ```
+This shows that the age of the house does not have a significant relationship with the respective price. The p value is considered large by being 0.184.
+
 ```{r}
 summary(lm(price~garagesize))
 ```
-From the summaries of the various linear regression models, it can be concluded that lot, bedrooms, and garagesize have a significant effect on the price of a house due to their low p values.
+By observing the small p value of 0.00148, it can be determined that the relationship between the garage size and the price of the house is signifcant.
 
+```{r}
+summary(lm(price~status))
+```
+The large p value of 0.05424 explains that the model is not significant. We can determine that status as a whole is not significant predictor.
+
+```{r}
+summary(lm(housing$price~housing$elem))
+```
+The small p value of 0.003042 allows us to determine that the model is significant. Elem should be included in the final model.
+
+From the summaries of the various linear regression models, it can be concluded that lot, bedrooms, garagesize, elem, and status have a significant effect on the price of a house due to their low p values.
+
+#3.
 #Initial Modeling 
 ```{r}
-summary(lm(price~lot+bedrooms+garagesize))
+lg<-lm(price~lot+bedrooms+garagesize+elem,data=housing)
+summary(lg)
 ```
-$$$$
+From this model, we can see that it itself is considered significant with a low p value of 0.003185 it regards to predciting the price of a house. Each of the three predictors were considered significant when they were ran independently but when they are all put in the same model, only garage size remains as a significant predictor.
+
+$$Price=199.606+9.822(lot)-6.592(bedrooms)+22.714(garagesize)+36.258(elemcrest)+13.235(elemedge)+84.252(elemedison)+70.188(elemharris)+2.871(elemparker)$$
+This is the intial linear regression equation used in order to estimate the price of a house.
+
+```{r}
+par(mfrow=c(2,2))
+plot(lg)
+```
+These plots show us that the data is not entirely normal or linear and can be manipulated to create a better model. For example, the residuals vs. fitted plot has a peak and then a downward trend when the ideal plot would just be a straight line. Additionally, the qq and scale-location plots are not entirely straight. 
+
+#4.
+#Model Modification
+```{r}
+housing1 <- subset(housing, lot<8)
+housing2 <- housing1[c(-4), ]
+```
+The first part of the data modification was to remove points that were determined to be outliars.
+
+```{r}
+pow<-1/2
+pricet<-(housing2$price)^pow
+```
+This input was included in order to fix problems with non linearity.
+
+```{r}
+lg2<-lm(pricet~sqrt(lot)+bedrooms+garagesize+elem,data = housing2)
+summary(lg2)
+```
+In this model, we created pricet in order to fix problems with linearity. We then took the sqare root of all lot values in order to condense the spread of values and hopefully create a straighter qq plot. We used housing2 as our data set because that was the set that exluded the variables we believed to be outliars. Our R-squared statistic is 0.4974. This means that 49.74% of the variation in price can be explained by the variation in lot, bedrooms, garagesize and elem. The models overall p value is 2.433-07. 
+
+```{r}
+par(mfrow=c(2,2))
+plot(lg2)
+```
+The model after modification produces plots that indicate slightly more normal and linear data. The residual vs leverage plot brings out points 4 and 5 to be examined. There is no obvious fanning of the residual points in the scale location plot.
 
 
 
+#5.
+#Conclusion
+```{r}
+library(car)
+vif(lg2)
+confint(lg2)
+#View(housing2)
+```
+The vif values of every variable are close to one. This tells us that the data points are somewhat correlated with each other. None of the vifs are above 5 or 10 so ther is no cause for immediate model reduction. 
+The column under the 2.5% represent the weight each variable carries towards the total price in the 2.5th percentile. The column under the 97.5% represent the weight that each variable carries towards the total price in the 97.5th percentile.
 
+```{r}
+elem <- factor(housing2$elem, levels=c("edge","edison","parker","harris","crest","adams"))
+```
+
+```{r}
+newdata<-data.frame(lot=4,bedrooms=4,garagesize=5,elem="edison")
+
+
+predict(lg2, newdata, interval = "confidence")
+19.17883^2
+23.10589^2
+predict(lg2, newdata, interval = "predict")
+17.87716^2
+24.40755^2
+```
+The 95% confidence interval for the house with our chosen qualities lies between 368,000 dollars and 534,000 dollars.
+
+The 95% prediction interval for the same house predicts a cost between 320,000 dollars and 596,000 dollars. 
+
+The output price values were squared to compensate for the modelling alterations to the price variable. 
+
+Our model seems relatively reasonable as the house we chose to predict the cost of had a four acre lot, four bedrooms, and a five car garage. Additionally, the house is in the Edison school zone which seems to raise the value of the house. 
 
 
 
