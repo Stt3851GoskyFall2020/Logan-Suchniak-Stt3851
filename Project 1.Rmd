@@ -108,7 +108,7 @@ The first part of the data modification was to remove points that were determine
 pow<-1/2
 pricet<-(housing2$price)^pow
 ```
-This input was included in order to fix problems with non linearity.
+This input was included in order to fix problems with non linearity in the data.
 
 ```{r}
 lg2<-lm(pricet~sqrt(lot)+bedrooms+garagesize+elem,data = housing2)
