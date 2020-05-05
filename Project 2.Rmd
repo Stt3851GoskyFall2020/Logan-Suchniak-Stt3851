@@ -1,0 +1,221 @@
+---
+title: "Project 2"
+author: "Logan Suchniak and Garrett Halford"
+date: "5/4/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readxl)
+housing <- read_excel("Housing.xlsx")
+#View(housing)
+head(housing)
+attach(housing)
+```
+
+##a.
+First Candidate Model
+```{r}
+housing1 <- subset(housing, lot<8)
+housing2 <- housing1[c(-4), ]
+pow<-1/2
+pricet<-(housing2$price)^pow
+lg2<-lm(pricet~sqrt(lot)+bedrooms+garagesize+elem,data = housing2)
+summary(lg2)
+```
+This was the final model in project 1 therefore it is the first model.
+
+```{r}
+housing3<-housing[-1]
+```
+
+##b.
+Second Candidate Model
+```{r}
+library(leaps)
+regfit1<-regsubsets(price~.,data=housing3,nvmax=14,method="forward")
+summary(regfit1)
+```
+This is the forward selection process.
+
+```{r}
+elemedison<-ifelse(elem=='edison',1,0)
+elemharris<-ifelse(elem=='harris',1,0)
+elemedge<-ifelse(elem=='edge',1,0)
+elemparker<-ifelse(elem=='parker',1,0)
+elemcrest<-ifelse(elem=='crest',1,0)
+statuspen<-ifelse(status=='pen',1,0)
+statussld<-ifelse(status=='sld',1,0)
+```
+
+```{r}
+regsum1<-summary(regfit1)
+par(mfrow=c(2,2))
+plot(regsum1$rss,xlab = "Pedictors",ylab = "RSS")
+plot(regsum1$rsq,xlab = "Predictors",ylab = "RSQ")
+plot(regsum1$bic,xlab = "Predictors",ylab = "BIC")
+plot(regsum1$adjr2,xlab = "Predictors",ylab = "ADJR2")
+```
+We will use BIC and CP for our statistics. From this graph, the optimal amount of predictors for the BIC is six since it produces the lowest value.
+
+```{r}
+which.min(regsum1$bic)
+which.min(regsum1$cp)
+```
+Both the BIC and CP criterion are lowest when the model has only six predictors.
+
+```{r}
+coef(regfit1,6)
+```
+These are the top six predictors for regfit1.
+
+```{r}
+model2<-(lm(price~size+lot+statuspen+elemcrest+elemharris+elemparker,data = housing3))
+summary(model2)
+```
+These variables were selected based off of the best 6 variables
+
+
+##c.
+Training and Testing splits
+```{r}
+set.seed(1)
+train <- sample(76, 38, replace = FALSE)
+training<-housing3[train,]
+testing<-housing3[-train,]
+```
+
+##d.
+```{r}
+regfit2<-regsubsets(price~.,data=training,nvmax=14,method="forward")
+regsum2<-summary(regfit2)
+summary(regfit2)
+```
+This is the forward selection process just using the training data.
+
+```{r}
+par(mfrow=c(2,2))
+plot(regsum2$rss,xlab = "Pedictors",ylab = "RSS")
+plot(regsum2$rsq,xlab = "Predictors",ylab = "RSQ")
+plot(regsum2$bic,xlab = "Predictors",ylab = "BIC")
+plot(regsum2$adjr2,xlab = "Predictors",ylab = "ADJR2")
+```
+Based on the BIC graph, the optimal amount of predictors is six. 
+
+```{r}
+which.min(regsum2$bic)
+which.min(regsum2$cp)
+```
+We will put in six variables even though the cp measurement says seven. This is because the BIC benefits from smaller amounts of predictors.
+
+```{r}
+summary(regsubsets(price~.,data=housing3,nvmax=6,method="forward"))
+```
+
+```{r}
+regfit.best <- regsubsets(price~.,data=training,nvmax=6, really.big = TRUE)
+```
+
+```{r}
+test.mat <- model.matrix(price~.,data=testing)
+```
+
+```{r}
+val.errors <- rep(NA,6)
+```
+
+```{r}
+for(i in 1:6){
+  coefi=coef(regfit.best,id=i)
+  pred=test.mat[,names(coefi)]%*%coefi
+  val.errors[i] <- mean((testing$price-pred)^2)}
+```
+
+```{r}
+val.errors
+```
+
+```{r}
+which.min(val.errors)
+```
+This backs up the fact that the best model should have six variables.
+
+```{r}
+coef(regfit.best,which.min(val.errors))
+```
+Here are the six best coeffecients.
+
+```{r}
+model3<-lm(price~size+lot+elemcrest+elemharris+elemparker+agestandardized,data=housing3)
+summary(model3)
+```
+This is the model with the top 6 predictors in it.
+
+##e.
+Fourth Candidate Model
+```{r}
+library(glmnet)
+set.seed(1)
+matrix.training<- model.matrix(price ~ ., data = training)
+matrix.testing<- model.matrix(price ~ ., data = testing)
+grid <-10 ^ seq(10, -2, length = 100)
+ridge<-glmnet(matrix.training, training$price, alpha = 0, lambda = grid, thresh = 1e-12)
+ridge.cv<-cv.glmnet(matrix.training, training$price, alpha = 0, lambda = grid, thresh = 1e-12)
+bestlam<-ridge.cv$lambda.min
+bestlam
+```
+
+```{r}
+ridge.cv$lambda[72]
+```
+The best lambda value is 24.77076.
+
+```{r}
+coef(ridge)[,72]
+```
+These are the top coeffecients for the lowest lambda value or the 72 iteration of the sequence.
+
+##f.
+```{r}
+library(pls)
+set.seed(1)
+model.pls<- plsr(price ~ ., data = training, scale = TRUE, validation = "CV")
+validationplot(model.pls, val.type = "MSEP")
+summary(model.pls)
+
+model.pls2 <- plsr(price ~ ., data = housing3, scale = TRUE, ncomp = 2)
+summary(model.pls2)
+```
+The summary of model.pls shows that the least amount of cross validation error is with 2 components, so we made a model with ncomp = 2. 
+
+##g
+```{r}
+#CM1
+#This model's prediction outcome had to be squared to account for the square root of the price variable in the model. 
+mean((price-predict(lg2,housing)^2)[-train]^2)
+
+#CM2
+mean((price-predict(model2,housing))[-train]^2)
+
+#CM3
+mean((price-predict(model3,housing))[-train]^2)
+
+#CM4
+pred.r<-predict(ridge,newx = matrix.testing,s=bestlam)
+mean((pred.r-testing$price)^2)
+
+#CM5
+mean((price-predict(model.pls2,housing))[-train]^2)
+```
+Based on the MSE values for each of the five models, it seems that the fifth candidate model is prefferable over the other four in this situation. 
+
+
+
+
+
+
+
